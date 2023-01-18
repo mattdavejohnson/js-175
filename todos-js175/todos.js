@@ -3,7 +3,10 @@ const express = require('express');
 const morgan = require('morgan');
 const flash = require('express-flash');
 const session = require('express-session');
+const { body, validationResult } = require('express-validator');
 const TodoList = require('./lib/todolist');
+const Todo = require('./lib/todo');
+const { sortTodoLists, sortTodos } = require('./lib/sort');
 
 const app = express();
 const host = 'localhost';
@@ -35,25 +38,15 @@ app.use((req, res, next) => {
   next();
 });
 
-const compareByTitle = (todoListA, todoListB) => {
-  let titleA = todoListA.title.toLowerCase();
-  let titleB = todoListB.title.toLowerCase();
-
-  if (titleA < titleB) {
-    return -1;
-  } else if (titleA > titleB) {
-    return 1;
-  } else {
-    return 0;
-  }
+const loadTodoList = (todoListId) => {
+  return todoLists.find((todoList) => todoList.id === todoListId);
 };
 
-const sortTodoLists = (lists) => {
-  let undone = lists.filter((todoList) => !todoList.isDone());
-  let done = lists.filter((todoList) => todoList.isDone());
-  undone.sort(compareByTitle);
-  done.sort(compareByTitle);
-  return [].concat(undone, done);
+const loadTodo = (todoListId, todoId) => {
+  let todoList = loadTodoList(todoListId);
+  if (!todoList) return undefined;
+
+  return todoList.todos.find((todo) => todo.id === todoId);
 };
 
 app.get('/', (req, res) => {
@@ -70,31 +63,137 @@ app.get('/lists/new', (req, res) => {
   res.render('new-list');
 });
 
-app.post('/lists', (req, res) => {
-  let title = req.body.todoListTitle.trim();
-
-  if (title.length === 0) {
-    req.flash('error', 'A title was not provided.');
-    res.render('new-list', {
-      flash: req.flash(),
-    });
-  } else if (title.length > 100) {
-    req.flash('error', 'List title must be between 1 and 100 characters.');
-    res.render('new-list', {
-      flash: req.flash(),
-      todoListTitle: req.body.todoListTitle,
-    });
-  } else if (todoLists.some((list) => list.title === title)) {
-    req.flash('error', 'List title must be unique.');
-    res.render('new-list', {
-      flash: req.flash(),
-      todoListTitle: req.body.todoListTitle,
-    });
-  } else {
-    todoLists.push(new TodoList(title));
-    req.flash('success', 'The todo list has been created.');
-    res.redirect('/lists');
+app.post(
+  '/lists',
+  [
+    body('todoListTitle')
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('The list title is required.')
+      .isLength({ max: 100 })
+      .withMessage('List title must be between 1 and 100 characters.')
+      .custom((title) => {
+        let duplicate = todoLists.find((list) => list.title === title);
+        return duplicate === undefined;
+      })
+      .withMessage('List title must be unique.'),
+  ],
+  (req, res) => {
+    let errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      errors.array().forEach((message) => req.flash('error', message.msg));
+      res.render('new-list', {
+        flash: req.flash(),
+        todoListTitle: req.body.todoListTitle,
+      });
+    } else {
+      todoLists.push(new TodoList(req.body.todoListTitle));
+      req.flash('success', 'The todo list has been created.');
+      res.redirect('/lists');
+    }
   }
+);
+
+app.get('/lists/:todoListId', (req, res, next) => {
+  let todoListId = req.params.todoListId;
+  let todoList = loadTodoList(+todoListId);
+  if (todoList === undefined) {
+    next(new Error('Not found.'));
+  } else {
+    res.render('list', {
+      todoList: todoList,
+      todos: sortTodos(todoList),
+    });
+  }
+});
+
+app.post('/lists/:todoListId/todos/:todoId/toggle', (req, res, next) => {
+  let { todoListId, todoId } = req.params;
+  let todo = loadTodo(+todoListId, +todoId);
+  if (!todo) {
+    next(new Error('Not found.'));
+  } else {
+    let title = todo.title;
+    if (todo.isDone()) {
+      todo.markUndone();
+      req.flash('success', `"${title}" marked as NOT done!`);
+    } else {
+      todo.markDone();
+      req.flash('success', `"${title}" marked done.`);
+    }
+
+    res.redirect(`/lists/${todoListId}`);
+  }
+});
+
+app.post('/lists/:todoListId/todos/:todoId/destroy', (req, res, next) => {
+  let { todoListId, todoId } = req.params;
+  let todoList = loadTodoList(+todoListId);
+  if (!todoList) {
+    next(new Error('Not found.'));
+  } else {
+    let todo = loadTodo(+todoListId, +todoId);
+    if (!todo) {
+      next(new Error('Not found.'));
+    } else {
+      todoList.removeAt(todoList.findIndexOf(todo));
+      req.flash('success', 'The todo has been deleted.');
+      res.redirect(`/lists/${todoListId}`);
+    }
+  }
+});
+
+app.post('/lists/:todoListId/complete_all', (req, res, next) => {
+  let todoListId = req.params.todoListId;
+  let todoList = loadTodoList(+todoListId);
+  if (!todoList) {
+    next(new Error('Not found.'));
+  } else {
+    todoList.markAllDone();
+    req.flash('success', 'All todos have been marked as done.');
+    res.redirect(`/lists/${todoListId}`);
+  }
+});
+
+app.post(
+  '/lists/:todoListId/todos',
+  [
+    body('todoTitle')
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('The todo title is required.')
+      .isLength({ max: 100 })
+      .withMessage('Todo title must be between 1 and 100 characters.'),
+  ],
+  (req, res, next) => {
+    let todoListId = req.params.todoListId;
+    let todoList = loadTodoList(+todoListId);
+    if (!todoList) {
+      next(new Error('Not found.'));
+    } else {
+      let errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        errors.array().forEach((message) => req.flash('error', message.msg));
+
+        res.render('list', {
+          flash: req.flash(),
+          todoList: todoList,
+          todos: sortTodos(todoList),
+          todoTitle: req.body.todoTitle,
+        });
+      } else {
+        let todo = new Todo(req.body.todoTitle);
+        todoList.add(todo);
+        req.flash('success', 'The todo has been created.');
+        res.redirect(`/lists/${todoListId}`);
+      }
+    }
+  }
+);
+
+app.use((err, req, res, _next) => {
+  console.log(err);
+  res.status(404).send(err.message);
 });
 
 app.listen(port, host, () => {
