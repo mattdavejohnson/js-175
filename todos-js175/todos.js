@@ -268,7 +268,7 @@ app.post(
   ],
   (req, res, next) => {
     let todoListId = req.params.todoListId;
-    let todoList = loadTodoList(+todoListId);
+    let todoList = loadTodoList(+todoListId, req.session.todoLists);
     let todoListTitle = req.body.todoListTitle;
     if (!todoList) {
       next(new Error('Not found.'));
