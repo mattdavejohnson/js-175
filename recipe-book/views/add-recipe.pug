@@ -1,0 +1,41 @@
+extends layout 
+
+block headerLinks 
+  a(href="/recipes") Return to recipes
+
+block main 
+  h2 Add a new recipe: 
+  
+  form(action="/recipes/new" method="post")
+    dl 
+      dt 
+        label(for="recipeName") Recipe Name: 
+        input(type="text" 
+              name="recipeName" 
+              placeholder="Recipe Name" 
+              value=recipeName)
+    dl 
+      dt
+        label(for="mealChoice") Meal:  
+        - let choices = ["Breakfast", "Lunch", "Dinner"]
+        select(name="mealChoice") 
+          each choice in choices 
+            option=choice 
+    dl 
+      dt 
+        label(for="ingredients") Ingredients: 
+        input(type="text" 
+              name="ingredients" 
+              placeholder="Ingredients" 
+              value=ingredients)
+    dl 
+      dt 
+        label(for="cookTime") Cook Time (in minutes):
+        input(type="text"
+              name="cookTime"
+              placeholder="Cook Time"
+              value=cookTime)
+
+    fieldset
+      input(type="submit" value="Save")
+      button(formaction="/recipes" formmethod="get") Cancel

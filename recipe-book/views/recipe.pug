@@ -1,0 +1,14 @@
+extends layout 
+
+block headerLinks 
+  a(href="/recipes") Return to recipes
+
+block main 
+  h2= recipe.name 
+  h3= recipe.meal 
+  h4= `Prep time: ${recipe.cookTime} mins`
+
+  ul 
+    each ingredient in recipe.ingredients
+      li 
+        p= ingredient 

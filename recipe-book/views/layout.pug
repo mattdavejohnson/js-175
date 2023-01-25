@@ -1,0 +1,22 @@
+doctype html 
+
+html(lang="en-us")
+
+  head 
+    title Recipe App 
+    meta(charset="UTF-8")
+  
+  body 
+    header 
+      h1 Recipe App
+      block headerLinks 
+  
+    main 
+      - let kinds = Object.keys(flash || {});
+      if kinds.length > 0
+        ul 
+          each kind in kinds 
+            each message in flash[kind] 
+              li= message 
+
+      block main

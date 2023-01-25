@@ -1,0 +1,17 @@
+extends layout 
+
+block headerLinks 
+  a(href="/add-recipe") Add Recipe 
+
+block main 
+  if recipeList === undefined || recipeList === 0
+    p You don't have any recipes. Let's add one! 
+  else 
+    ul 
+      each recipe in recipeList 
+        li 
+          a(href=`/recipes/${recipe.id}`)
+            h2= recipe.name 
+          p= recipe.meal
+
+           
