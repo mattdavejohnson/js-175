@@ -1,0 +1,16 @@
+extends layout
+
+block headerLinks 
+  a(href="/add-flight") Add Flight 
+
+block main 
+  h2 Your Flights 
+
+  if flightList === undefined || flightList === 0
+    p You don't have any flights. Add one! 
+  else 
+    ul 
+      each flight in flightList 
+        li 
+          a(href=`/home/${flight.id}`)
+            h2= `Flight #${flight.flightNumber} to ${flight.destination}`
