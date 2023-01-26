@@ -1,0 +1,10 @@
+extends layout
+
+block headerLinks
+  a(href="/home") Return to Flight List 
+
+block main 
+  h2 #{flight.airline} 
+  h3 Flight #{flight.flightNumber}
+  h3 Departs at #{flight.departureTime}
+  h3 Arrival to #{flight.destination} at #{flight.arrivalTime}

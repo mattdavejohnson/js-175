@@ -1,4 +1,48 @@
 extends layout 
 
 block headerLinks 
-  h2 Add Flight
+  a(href="/home") Return to Flight list
+
+block main
+  h2 Enter Your Flight Details
+
+  form(action="/home/new" method="post")
+    dl 
+      dt 
+        label(for="airline") Airline: 
+        input(type="text"
+              name="airline"
+              placeholder="Airline"
+              value=airline)
+    dl 
+      dt 
+        label(for="flightNumber") Flight Number: 
+        input(type="text"
+              name="flightNumber"
+              placeholder="Flight Number"
+              value=flightNumber)
+    dl 
+      dt 
+        label(for="departureTime") Departure Time: 
+        input(type="text"
+              name="departureTime"
+              placeholder="Departure Time"
+              value=departureTime)
+    dl 
+      dt 
+        label(for="arrivalTime") Arrival Time: 
+        input(type="text"
+              name="arrivalTime"
+              placeholder="Arrival Time"
+              value=arrivalTime)
+    dl 
+      dt 
+        label(for="destination") Destination: 
+        input(type="text"
+              name="destination"
+              placeholder="Destination"
+              value=destination)
+
+    fieldset  
+      input(type="submit" value="Save")
+      button(formaction="/home" formmethod="get") Cancel
